@@ -7,49 +7,29 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
 
     <style id="base-styles">
-        /* Base Styles */
-        body { 
-            /* استفاده از یک مجموعه فونت که حروف لاتین (آلمانی) را بهتر پشتیبانی کند */
-            font-family: Tahoma, 'B Titr', Arial, sans-serif; 
-            padding: 20px; 
-            background-color: #f4f4f4; 
-            margin: 0; 
-        }
-        /* ... بقیه استایل‌های ویرایشگر (بدون تغییر) ... */
+        /* Base Styles (بدون تغییر) */
+        body { font-family: Tahoma, 'B Titr', Arial, sans-serif; padding: 20px; background-color: #f4f4f4; margin: 0; }
         .main-container { display: flex; max-width: 1400px; margin: 0 auto; gap: 20px; }
         .controls { flex: 1; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .preview-area { flex: 2; min-height: 500px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: #fff; overflow-y: auto; }
         .output-actions { width: 100%; max-width: 1400px; margin: 20px auto; text-align: center; }
-
-        /* Control Inputs & Buttons */
         label { display: block; margin-top: 15px; font-weight: bold; color: #333; }
         input[type="text"], input[type="number"], select, textarea { width: 100%; padding: 10px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
         .add-btn, .action-btn { padding: 10px 18px; margin-top: 20px; cursor: pointer; border: none; border-radius: 4px; color: white; transition: background-color 0.3s; }
         .add-btn { background-color: #007BFF; width: 100%; }
         .add-btn:hover { background-color: #0056b3; }
         .action-btn { margin: 0 5px; }
-
-        /* Live Element Styles & Controls */
         .page-element { 
-            padding: 15px; 
-            margin-bottom: 10px; 
-            border: 1px dashed #ccc; 
-            background-color: #f9f9f9; 
-            display: flex; 
-            align-items: flex-start;
-            justify-content: space-between;
+            padding: 15px; margin-bottom: 10px; border: 1px dashed #ccc; background-color: #f9f9f9; 
+            display: flex; align-items: flex-start; justify-content: space-between;
         }
         .element-content { flex-grow: 1; margin-left: 10px; }
         .element-controls button { font-size: 12px; padding: 5px 10px; margin-bottom: 5px; display: block; background-color: #ffc107; color: #333; border: none; border-radius: 4px; cursor: pointer; }
         .element-controls .delete-btn { background-color: #dc3545; color: white; }
-        
-        /* Specific Element Styles (For Preview) */
         .card { border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .card img { max-width: 100px; height: auto; float: right; margin-right: 15px; border-radius: 4px; }
         .card-body { overflow: hidden; }
         .spacer-preview { background-color: #e6e6e6; text-align: center; color: #666; font-size: 12px; line-height: 1; padding-top: 5px; border: 1px solid #ccc; }
-        
-        /* Modal for Link Sharing */
         .modal-overlay {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); 
             display: none; justify-content: center; align-items: center; z-index: 1000;
@@ -65,8 +45,6 @@
         }
         .copy-btn { background-color: #28a745; margin-top: 10px; margin-left: 10px; }
         .close-btn { background-color: #6c757d; margin-top: 10px; }
-
-        /* Hiding specific controls based on selection */
         .hidden-control { display: none; }
     </style>
 </head>
@@ -171,15 +149,16 @@
     <script>
         // --- متغیرها ---
         const livePreview = document.getElementById('live-preview');
-        const spacerHeight = document.getElementById('spacer-height');
+        const spacerHeightInput = document.getElementById('spacer-height'); // تغییر نام متغیر برای وضوح بیشتر
         const mainTitle = document.getElementById('main-title');
         const editorContainer = document.getElementById('editor-container');
         const outputActions = document.querySelector('.output-actions');
         const contentViewer = document.getElementById('content-viewer');
 
-        // --- توابع اصلی (بدون تغییر) ---
+        // --- توابع کمکی ---
+
         function updateControls() {
-             const type = document.getElementById('element-type').value;
+            const type = document.getElementById('element-type').value;
             
             document.querySelectorAll('#style-controls > div').forEach(div => div.classList.add('hidden-control'));
             document.getElementById('element-content').parentNode.style.display = 'block';
@@ -225,8 +204,40 @@
                 document.getElementById('element-content').parentNode.style.display = contentNeeded ? 'block' : 'none';
             }
         }
-        function addElement() { /* ... */
-             const type = document.getElementById('element-type').value;
+        
+        function updateHtmlData(elementWrapper) {
+            const contentDiv = elementWrapper.querySelector('.element-content');
+            
+            // اگر المان spacer نیست، محتوای نهایی را از contenteditable به‌روزرسانی کن.
+            if (!elementWrapper.querySelector('.spacer-preview')) {
+                 elementWrapper.dataset.html = contentDiv.innerHTML;
+            }
+        }
+        
+        function moveElement(element, direction) {
+            const currentContainer = element.parentNode;
+            const elements = Array.from(currentContainer.querySelectorAll('.page-element'));
+            const currentIndex = elements.indexOf(element);
+
+            if (direction === 'up' && currentIndex > 0) {
+                currentContainer.insertBefore(element, elements[currentIndex - 1]);
+            } else if (direction === 'down' && currentIndex < elements.length - 1) {
+                currentContainer.insertBefore(element, elements[currentIndex + 2]);
+            }
+        }
+        
+        function deleteElement(element) {
+            element.remove();
+        }
+
+        function clearContent() {
+            livePreview.innerHTML = '<h2 style="color: #666; margin-top: 0;">پیش‌نمایش زنده صفحه</h2>';
+        }
+
+        // --- توابع اصلی ویرایشگر ---
+
+        function addElement() {
+            const type = document.getElementById('element-type').value;
             const content = document.getElementById('element-content').value || 'محتوای خالی';
             const link = document.getElementById('element-link').value || '#';
             let htmlCode = '';
@@ -240,8 +251,12 @@
             
             switch (type) {
                 case 'button':
-                    const buttonHoverStyle = `onmouseover="this.style.backgroundColor='${document.getElementById('color-hover').value}'" onmouseout="this.style.backgroundColor='${document.getElementById('color-main').value}'"`;
-                    const buttonBaseStyle = `background-color: ${document.getElementById('color-main').value}; color: ${document.getElementById('color-text').value}; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;`;
+                    const colorMain = document.getElementById('color-main').value;
+                    const colorHover = document.getElementById('color-hover').value;
+                    const colorText = document.getElementById('color-text').value;
+                    
+                    const buttonHoverStyle = `onmouseover="this.style.backgroundColor='${colorHover}'" onmouseout="this.style.backgroundColor='${colorMain}'"`;
+                    const buttonBaseStyle = `background-color: ${colorMain}; color: ${colorText}; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;`;
 
                     if (document.getElementById('button-action').value === 'alert') {
                         htmlCode = `<button ${buttonHoverStyle} onclick="alert('${content} کلیک شد!')" style="${buttonBaseStyle}">${content}</button>`;
@@ -261,7 +276,7 @@
                     break;
                 
                 case 'spacer':
-                    const height = document.getElementById('spacer-height').value || 30;
+                    const height = spacerHeightInput.value || 30;
                     htmlCode = `<div style="height: ${height}px;"></div>`;
                     break;
 
@@ -340,7 +355,7 @@
             elementWrapper.dataset.html = htmlCode; 
 
             const isContentEditable = type !== 'table' && type !== 'spacer' && type !== 'input_field';
-            const previewContent = type === 'spacer' ? `<div class="spacer-preview" style="height:${document.getElementById('spacer-height').value || 30}px;">فاصله‌دهنده ${document.getElementById('spacer-height').value || 30}px</div>` : htmlCode;
+            const previewContent = type === 'spacer' ? `<div class="spacer-preview" style="height:${spacerHeightInput.value || 30}px;">فاصله‌دهنده ${spacerHeightInput.value || 30}px</div>` : htmlCode;
 
             elementWrapper.innerHTML = `
                 <div class="element-controls">
@@ -354,60 +369,101 @@
             livePreview.appendChild(elementWrapper);
             livePreview.scrollTop = livePreview.scrollHeight;
         }
-        function updateHtmlData(elementWrapper) { /*... */
-             const contentDiv = elementWrapper.querySelector('.element-content');
-            
-            if (!elementWrapper.querySelector('.spacer-preview')) {
-                 elementWrapper.dataset.html = contentDiv.innerHTML;
-            }
-        }
-        function moveElement(element, direction) { /*... */
-             const currentContainer = element.parentNode;
-            const elements = Array.from(currentContainer.querySelectorAll('.page-element'));
-            const currentIndex = elements.indexOf(element);
 
-            if (direction === 'up' && currentIndex > 0) {
-                currentContainer.insertBefore(element, elements[currentIndex - 1]);
-            } else if (direction === 'down' && currentIndex < elements.length - 1) {
-                currentContainer.insertBefore(element, elements[currentIndex + 2]);
-            }
-        }
-        function deleteElement(element) { /*... */
-             element.remove();
-        }
-        function clearContent() { /*... */
-             livePreview.innerHTML = '<h2 style="color: #666; margin-top: 0;">پیش‌نمایش زنده صفحه</h2>';
-        }
-        function getPageHtmlContent() { /*... */
+        /**
+         * 🚨 تابع حیاتی برای دانلود و ساخت لینک 🚨
+         * محتوای HTML نهایی را از تمام المان‌های پیش‌نمایش جمع‌آوری می‌کند.
+         */
+        function getPageHtmlContent() {
+             // 1. اطمینان از به‌روزرسانی محتوای ویرایش شده در dataset.html
              Array.from(document.querySelectorAll('.page-element')).forEach(updateHtmlData);
             
             const elements = Array.from(document.querySelectorAll('.page-element'));
+            if (elements.length === 0) {
+                 alert("لطفاً ابتدا چند المان به صفحه اضافه کنید.");
+                 return null;
+            }
+            
+            // 2. جمع‌آوری محتوای نهایی
             const contentToDownload = elements.map(el => {
+                // اگر المان spacer است، تگ <div> با ارتفاع صحیح را برگردان
                 if (el.querySelector('.spacer-preview')) {
                      const height = el.querySelector('.spacer-preview').style.height.replace('px', '');
                      return `<div style="height: ${height}px;"></div>`;
                 }
+                // در غیر این صورت، محتوای ذخیره شده در dataset.html را برگردان
                 return el.dataset.html;
             }).join('\n    ');
 
             return contentToDownload;
         }
-        function downloadHtml() { /*... */ }
+
+        // --- توابع ساخت لینک و دانلود ---
+
         function createShareableLink() {
+            // 🚨 بررسی LZString 🚨
             if (typeof LZString === 'undefined') {
-                alert('خطا: کتابخانه LZString بارگذاری نشده است. لطفا اتصال اینترنت خود را بررسی کنید.');
+                alert('خطا: کتابخانه فشرده‌سازی LZString بارگذاری نشده است. اگر آفلاین هستید، فایل را به صورت محلی بارگذاری کنید.');
                 return;
             }
             
             const content = getPageHtmlContent();
+            if (!content) return; // اگر محتوایی نباشد، توقف کن.
+            
             const compressedAndEncodedContent = LZString.compressToEncodedURIComponent(content);
+            
             const baseUrl = window.location.origin + window.location.pathname;
             const shareableLink = baseUrl + '?data=' + compressedAndEncodedContent;
 
             showLinkModal(shareableLink);
         }
 
-        // --- تابع loadFromLink() اصلاح شده ---
+        function downloadHtml() {
+            const contentToDownload = getPageHtmlContent();
+            if (!contentToDownload) return; // اگر محتوایی نباشد، توقف کن.
+            
+            const finalStyles = `
+        body { font-family: Tahoma, 'B Titr', Arial, sans-serif; padding: 20px; line-height: 1.6; direction: rtl; text-align: right; }
+        h2, h3, p { color: #333; margin: 15px 0; }
+        .card { border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); overflow: auto; }
+        .card img { float: right; margin-right: 15px; border-radius: 4px; object-fit: cover; }
+        ul { margin: 15px 0; padding-right: 20px;}
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: right; }
+        th { background-color: #f2f2f2; }
+        a[download] { display: block; margin: 10px 0; color: #007BFF; text-decoration: underline; }
+        input[type="text"] { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+    `;
+            
+            const finalHtml = `
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>صفحه تولید شده</title>
+    <style>
+${finalStyles}
+    </style>
+</head>
+<body>
+    ${contentToDownload}
+</body>
+</html>
+            `;
+            
+            const blob = new Blob([finalHtml], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'My_Advanced_WebPage.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // --- توابع بارگذاری لینک (Load) ---
 
         function loadFromLink() {
             const urlParams = new URLSearchParams(window.location.search);
@@ -426,8 +482,7 @@
 
                 try {
                     if (typeof LZString === 'undefined') {
-                        contentViewer.innerHTML = `<p style="color: red; font-size: 18px; padding: 20px;">❌ خطا: کتابخانه LZString بارگذاری نشده است. لطفا اتصال اینترنت خود را بررسی کنید.</p>`;
-                        return;
+                        throw new Error('LZString library not loaded. Check internet connection or load the file locally.');
                     }
                     
                     const decodedContent = LZString.decompressFromEncodedURIComponent(data);
@@ -441,9 +496,9 @@
                             max-width: 900px; 
                             margin: 0 auto; 
                             padding: 20px; 
-                            /* تنظیم جهت کلی محتوا به RTL اما با قابلیت حفظ LTR داخلی */
                             direction: rtl; 
                             text-align: right;
+                            font-family: Tahoma, 'B Titr', Arial, sans-serif;
                         ">
                             ${decodedContent}
                         </div>
@@ -463,24 +518,18 @@
                     `;
                     
                     contentViewer.style.padding = '20px';
-                    
-                    // اعمال استایل برای تضمین نمایش LTR در محتوای لاتین (مثل آلمانی)
-                    // این خط تضمین می‌کند متون لاتین درون بلوک‌های پاراگراف و عنوان به درستی LTR شوند.
-                    // توجه: این استایل به صورت سراسری اعمال نمی‌شود، اما می‌تواند به صورت دستی در محتوای تولیدی قرار گیرد.
-                    // برای تست، اگر متنی مانند "Die Stadt München" را اضافه کرده‌اید، به درستی نمایش داده می‌شود.
 
                 } catch (e) {
                     contentViewer.innerHTML = `
                         <div style="max-width: 900px; margin: 0 auto; padding: 20px;">
-                            <p style="color: red; font-size: 18px;">❌ خطا در بارگذاری محتوا از لینک. (ممکن است لینک آسیب دیده یا بسیار طولانی بوده باشد)</p>
-                            <p style="direction: ltr; text-align: left; font-size: 14px;">Error Details: ${e.message}</p>
+                            <p style="color: red; font-size: 18px;">❌ خطا در بارگذاری محتوا از لینک.</p>
+                            <p style="direction: ltr; text-align: left; font-size: 14px; color: #666;">جزئیات: ${e.message}</p>
                         </div>
                         <button onclick="window.location.href = window.location.pathname" style="
                             position: fixed; top: 15px; left: 15px; background-color: #f44336; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; z-index: 9999;">
                             بازگشت به ویرایشگر
                         </button>
                     `;
-                    console.error("Error decoding data:", e);
                 }
             } else {
                 // حالت عادی: نمایش ویرایشگر
@@ -494,11 +543,45 @@
         }
 
         // --- توابع Modal Link (بدون تغییر) ---
-        function showLinkModal(link) { /*... */ }
-        function hideModal(event) { /*... */ }
-        function copyLink() { /*... */ }
+
+        function showLinkModal(link) {
+            const modal = document.getElementById('link-modal');
+            const linkBox = document.getElementById('share-link-box');
+            linkBox.textContent = link;
+            modal.style.display = 'flex';
+        }
+
+        function hideModal(event) {
+            const modal = document.getElementById('link-modal');
+            if (!event || event.target === modal || event.target.className === 'close-btn') {
+                modal.style.display = 'none';
+            }
+        }
+
+        function copyLink() {
+            const linkBox = document.getElementById('share-link-box');
+            const range = document.createRange();
+            range.selectNode(linkBox);
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(range);
+            
+            try {
+                document.execCommand('copy');
+                const copyButton = document.querySelector('.copy-btn');
+                copyButton.textContent = '✅ کپی شد!';
+                copyButton.style.backgroundColor = '#17a2b8';
+                
+                setTimeout(() => {
+                    copyButton.textContent = 'کپی کردن لینک';
+                    copyButton.style.backgroundColor = '#28a745';
+                }, 1500);
+
+            } catch (err) {
+                console.error('Failed to copy text: ', err);
+            }
+            window.getSelection().removeAllRanges();
+        }
         
-        // اجرای اولیه برای تنظیم کنترل‌ها
         updateControls();
     </script>
 </body>
